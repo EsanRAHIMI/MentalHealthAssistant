@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/static/style.css">
+    <title>Mental Health Assistant</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <h1>Mental Health Assistant</h1>
+        <p class="description">Hi! I’m here to help. Let’s talk about anything on your mind, and I’ll try my best to assist you.</p>
+        <div id="overlay" class="overlay" style="display: none;">
+            <div class="overlay-content">
+                <div class="loader"></div>
+                <p id="overlay-text">Listening...</p>
+            </div>
+        </div>
+        <p id="transcript" class="transcript"></p>
+        <div id="responseContainer" class="response-container">
+            <h3>Response:</h3>
+            <p id="response" class="response-text"></p>
+            <div id="criticalMessage" class="critical-message" style="display: none;">
+                <p>If you are in crisis, please contact your local emergency services or a trusted mental health professional immediately. You can also call emergency services (998) or the police (999) for immediate assistance.</p>
+                <button id="emergencyButton" onclick="sendEmergencyAlert()">🚨 Send Emergency Alert</button>
+            </div>
+            <audio id="audioResponse"></audio>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-button" onclick="showAccount()">
+            <span>👤 Account</span>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-button" onclick="shareResponse()">
+            <span>🔗 Share</span>
+        </div>
+        <div class="nav-divider"></div>
+        <div id="startButton" class="nav-button main-button" onclick="startRecognition()">
+            <span>🎤 Talk</span>
+        </div>
+        <div class="nav-divider"></div>
+        <div id="playPauseButton" class="nav-button" onclick="toggleAudio()" disabled>
+            <span>▶️ Play</span>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-button" onclick="showInfo()">
+            <span>ℹ️ Info</span>
+        </div>
+    </div>
+
+    <script>
+        const startButton = document.getElementById("startButton");
+        const transcriptElement = document.getElementById("transcript");
+        const responseContainer = document.getElementById("responseContainer");
+        const responseText = document.getElementById("response");
+        const criticalMessage = document.getElementById("criticalMessage");
+        const playPauseButton = document.getElementById("playPauseButton");
+        const audioResponse = document.getElementById("audioResponse");
+        const overlay = document.getElementById("overlay");
+        const overlayText = document.getElementById("overlay-text");
+
+        let recognition;
+        if ("webkitSpeechRecognition" in window) {
+            recognition = new webkitSpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = "en-US";
+
+            recognition.onstart = function() {
+                startButton.innerText = "🔴";
+                transcriptElement.innerText = "";
+                overlay.style.display = "flex";
+                overlayText.innerText = "Listening...";
+            };
+
+            recognition.onresult = function(event) {
+                const transcript = event.results[0][0].transcript;
+                transcriptElement.innerText = "You: " + transcript;
+                transcriptElement.style.textAlign = "left";
+                overlayText.innerText = "Processing...";
+                showProcessingAnimation();
+                sendToServer(transcript);
+            };
+
+            recognition.onerror = function(event) {
+                overlay.style.display = "none";
+                transcriptElement.innerText = "Error occurred: " + event.error;
+            };
+
+            recognition.onend = function() {
+                startButton.innerHTML = "🎤 Talk";
+                overlay.style.display = "none";
+            };
+        } else {
+            alert("Your browser does not support Speech Recognition. Please try using Chrome.");
+        }
+
+        function startRecognition() {
+            if (recognition) {
+                if (startButton.innerText.includes("Talk")) {
+                    recognition.start();
+                } else {
+                    recognition.stop();
+                }
+            }
+        }
+
+        async function sendToServer(userInput) {
+            // Stop any ongoing speech synthesis before sending a new request
+            window.speechSynthesis.cancel();
+            playPauseButton.innerText = "▶️ Play";
+            playPauseButton.disabled = true;
+
+            responseText.innerText = "Analyzing your input...";
+            responseContainer.style.display = "block";
+            criticalMessage.style.display = "none";
+
+            try {
+                const response = await fetch("/analyze", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ text: userInput })
+                });
+
+                const data = await response.json();
+                if (data.response) {
+                    responseText.innerText = data.response;
+                    if (data.critical) {
+                        criticalMessage.style.display = "block";
+                        sendEmergencyAlert();
+                    }
+                    speakResponse(data.response);
+                    updateShareData(data.user_input, data.response, data.timestamp);
+                } else {
+                    responseText.innerText = "Error: " + data.error;
+                }
+            } catch (error) {
+                responseText.innerText = "An error occurred. Please try again later.";
+            } finally {
+                overlay.style.display = "none";
+            }
+        }
+
+        function speakResponse(response) {
+            const synth = window.speechSynthesis;
+            const utterThis = new SpeechSynthesisUtterance(response);
+            utterThis.lang = "en-US";
+            synth.speak(utterThis);
+
+            utterThis.onstart = function() {
+                playPauseButton.innerHTML = "⏸️ Pause";
+                playPauseButton.disabled = false;
+            };
+
+            utterThis.onend = function() {
+                playPauseButton.innerHTML = "▶️ Play";
+                playPauseButton.disabled = false;
+            };
+
+            playPauseButton.style.display = "inline-block";
+        }
+
+        function toggleAudio() {
+            const synth = window.speechSynthesis;
+            if (synth.speaking) {
+                if (synth.paused) {
+                    synth.resume();
+                    playPauseButton.innerHTML = "⏸️ Pause";
+                } else {
+                    synth.pause();
+                    playPauseButton.innerHTML = "▶️ Resume";
+                }
+            } else if (!synth.speaking && responseText.innerText) {
+                speakResponse(responseText.innerText);
+            }
+        }
+
+        let shareData = {
+            title: 'Mental Health Assistant Response',
+            text: ''
+        };
+
+        function updateShareData(userInput, response, timestamp) {
+            shareData.text = `User Input: "${userInput}"
+Response: "${response}"
+Timestamp: ${timestamp}`;
+        }
+
+        function shareResponse() {
+            if (navigator.share) {
+                navigator.share(shareData).then(() => {
+                    console.log('Response shared successfully');
+                }).catch((error) => {
+                    console.error('Error sharing response:', error);
+                });
+            } else {
+                alert("Sharing not supported in this browser. Please copy the response manually.");
+            }
+        }
+
+        function showProcessingAnimation() {
+            overlay.style.display = "flex";
+            overlayText.innerText = "Processing...";
+        }
+
+        function showInfo() {
+            alert("Mental Health Assistant v1.0\nDeveloped by: Masi\nContact: MLbyMasi@Gmail.com");
+        }
+
+        function showAccount() {
+            alert("Account feature is under development.");
+        }
+
+        function sendEmergencyAlert() {
+            alert("Emergency alert has been sent to your trusted contacts.");
+            // اینجا می‌توانید منطق ارسال پیام اضطراری واقعی را اضافه کنید
+        }
+    </script>
+</body>
+</html>
