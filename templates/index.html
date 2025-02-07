@@ -13,6 +13,12 @@
     <div class="container">
         <h1>Mental Health Assistant</h1>
         <p class="description">Hi! I’m here to help. Let’s talk about anything on your mind, and I’ll try my best to assist you.</p>
+        <div class="user-info">
+            <label for="userName">Name:</label>
+            <input type="text" id="userName" placeholder="Enter your name">
+            <label for="userAge">Age:</label>
+            <input type="number" id="userAge" placeholder="Enter your age">
+        </div>
         <div id="overlay" class="overlay" style="display: none;">
             <div class="overlay-content">
                 <div class="loader"></div>
@@ -33,23 +39,28 @@
 
     <div class="bottom-nav">
         <div class="nav-button" onclick="showAccount()">
-            <span>👤 Account</span>
+            <span>👤</span>
+            <span class="button-label">Account</span>
         </div>
         <div class="nav-divider"></div>
         <div class="nav-button" onclick="shareResponse()">
-            <span>🔗 Share</span>
+            <span>🔗</span>
+            <span class="button-label">Share</span>
         </div>
         <div class="nav-divider"></div>
         <div id="startButton" class="nav-button main-button" onclick="startRecognition()">
-            <span>🎤 Talk</span>
+            <span>🎤</span>
+            <span class="button-label">Talk</span>
         </div>
         <div class="nav-divider"></div>
         <div id="playPauseButton" class="nav-button" onclick="toggleAudio()" disabled>
-            <span>▶️ Play</span>
+            <span>▶️</span>
+            <span class="button-label">Play</span>
         </div>
         <div class="nav-divider"></div>
         <div class="nav-button" onclick="showInfo()">
-            <span>ℹ️ Info</span>
+            <span>ℹ️</span>
+            <span class="button-label">Info</span>
         </div>
     </div>
 
@@ -72,7 +83,7 @@
             recognition.lang = "en-US";
 
             recognition.onstart = function() {
-                startButton.innerText = "🔴";
+                startButton.innerHTML = `<span>🔴</span><span class="button-label">Listening</span>`;
                 transcriptElement.innerText = "";
                 overlay.style.display = "flex";
                 overlayText.innerText = "Listening...";
@@ -93,7 +104,7 @@
             };
 
             recognition.onend = function() {
-                startButton.innerHTML = "🎤 Talk";
+                startButton.innerHTML = `<span>🎤</span><span class="button-label">Talk</span>`;
                 overlay.style.display = "none";
             };
         } else {
@@ -113,8 +124,11 @@
         async function sendToServer(userInput) {
             // Stop any ongoing speech synthesis before sending a new request
             window.speechSynthesis.cancel();
-            playPauseButton.innerText = "▶️ Play";
+            playPauseButton.innerHTML = `<span>▶️</span><span class="button-label">Play</span>`;
             playPauseButton.disabled = true;
+
+            const userName = document.getElementById("userName").value || "User";
+            const userAge = document.getElementById("userAge").value || "unknown";
 
             responseText.innerText = "Analyzing your input...";
             responseContainer.style.display = "block";
@@ -126,7 +140,7 @@
                     headers: {
                         "Content-Type": "application/json"
                     },
-                    body: JSON.stringify({ text: userInput })
+                    body: JSON.stringify({ text: userInput, name: userName, age: userAge })
                 });
 
                 const data = await response.json();
@@ -155,12 +169,12 @@
             synth.speak(utterThis);
 
             utterThis.onstart = function() {
-                playPauseButton.innerHTML = "⏸️ Pause";
+                playPauseButton.innerHTML = `<span>⏸️</span><span class="button-label">Pause</span>`;
                 playPauseButton.disabled = false;
             };
 
             utterThis.onend = function() {
-                playPauseButton.innerHTML = "▶️ Play";
+                playPauseButton.innerHTML = `<span>▶️</span><span class="button-label">Play</span>`;
                 playPauseButton.disabled = false;
             };
 
@@ -172,10 +186,10 @@
             if (synth.speaking) {
                 if (synth.paused) {
                     synth.resume();
-                    playPauseButton.innerHTML = "⏸️ Pause";
+                    playPauseButton.innerHTML = `<span>⏸️</span><span class="button-label">Pause</span>`;
                 } else {
                     synth.pause();
-                    playPauseButton.innerHTML = "▶️ Resume";
+                    playPauseButton.innerHTML = `<span>▶️</span><span class="button-label">Resume</span>`;
                 }
             } else if (!synth.speaking && responseText.innerText) {
                 speakResponse(responseText.innerText);

@@ -19,11 +19,13 @@ def index():
 def analyze():
     """آنالیز ورودی کاربر و ارائه پاسخ مناسب"""
     user_input = request.json.get("text")
+    user_name = request.json.get("name", "User")
+    user_age = request.json.get("age", "unknown")
     if not user_input:
         return jsonify({"error": "No input provided"}), 400
 
     # بررسی شرایط بحرانی (مانند افکار خودکشی یا آسیب)
-    critical_conditions = ["suicide", "kill myself", "self-harm", "hurt myself", "end my life", "harm"]
+    critical_conditions = ["suicide", "kill myself", "self-harm", "hurt myself", "end my life"]
     if any(condition in user_input.lower() for condition in critical_conditions):
         # ثبت زمان و نوع پیام اضطراری
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -31,7 +33,7 @@ def analyze():
         # اینجا می‌توانید منطق ارسال پیام اضطراری واقعی را اضافه کنید
         print(emergency_message)
         return jsonify({
-            "response": "I'm really sorry that you're feeling this way. Please remember that you are not alone, and there are people who can help you. I strongly encourage you to reach out to a trusted person or contact a local mental health professional or helpline. You can also call emergency services (998) or the police (999) for immediate assistance.",
+            "response": f"{user_name}, I'm really sorry that you're feeling this way. Please remember that you are not alone, and there are people who can help you. I strongly encourage you to reach out to a trusted person or contact a local mental health professional or helpline. You can also call emergency services (998) or the police (999) for immediate assistance.",
             "critical": True
         })
 
@@ -40,8 +42,8 @@ def analyze():
         response = openai.ChatCompletion.create(
             model="gpt-3.5-turbo",
             messages=[
-                {"role": "system", "content": "You are a highly empathetic and evidence-based mental health assistant. Your role is to understand the user's emotions deeply, validate their feelings, and provide actionable, practical, and specific solutions to help them feel better. Offer step-by-step guidance, coping techniques, and suggestions for lifestyle changes that can improve their mental health. Be as clear and supportive as possible, giving the user tangible actions they can take right now."},
-                {"role": "user", "content": user_input}
+                {"role": "system", "content": "You are a highly empathetic and evidence-based mental health assistant. Your role is to understand the user's emotions deeply, validate their feelings, and provide actionable, practical, and specific solutions to help them feel better. Consider the user's name and age to personalize the response. Offer step-by-step guidance, coping techniques, and suggestions for lifestyle changes that can improve their mental health. Be as clear and supportive as possible, giving the user tangible actions they can take right now."},
+                {"role": "user", "content": f"Name: {user_name}, Age: {user_age}. {user_input}"}
             ]
         )
         assistant_response = response['choices'][0]['message']['content'].strip()
