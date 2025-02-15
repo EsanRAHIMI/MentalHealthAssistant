@@ -8,15 +8,28 @@ from datetime import datetime
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-app = Flask(__name__, static_url_path="/assistant/static")
-app.config["APPLICATION_ROOT"] = "/assistant"
+# مقداردهی از متغیرهای محیطی
+APP_NAME = os.getenv("FLASK_APP_NAME", "Mental Health Assistant")
+APP_ENV = os.getenv("FLASK_ENV", "development")
+PORT = int(os.getenv("FLASK_PORT", 5005))
+APPLICATION_ROOT = os.getenv("FLASK_APPLICATION_ROOT", "/assistant")
+STATIC_URL_PATH = os.getenv("FLASK_STATIC_URL_PATH", "/assistant/static")
 
-@app.route("/assistant/")
+# ایجاد Flask app
+app = Flask(
+    __name__, 
+    static_folder="static", 
+    template_folder="templates", 
+    static_url_path=STATIC_URL_PATH
+)
+app.config["APPLICATION_ROOT"] = APPLICATION_ROOT
+
+@app.route(f"{APPLICATION_ROOT}/")
 def index():
     """صفحه اصلی که رابط کاربری را نمایش می‌دهد"""
-    return render_template("index.html")
+    return render_template("index.html", APPLICATION_ROOT=APPLICATION_ROOT)
 
-@app.route("/assistant/analyze", methods=["POST"])
+@app.route(f"{APPLICATION_ROOT}/analyze", methods=["POST"])
 def analyze():
     """آنالیز ورودی کاربر و ارائه پاسخ مناسب"""
     user_input = request.json.get("text")
@@ -55,4 +68,5 @@ def analyze():
         return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5005, debug=True)
+    print(f"Starting {APP_NAME} in {APP_ENV} mode on port {PORT}...")
+    app.run(host="0.0.0.0", port=PORT, debug=(APP_ENV == "development"))
