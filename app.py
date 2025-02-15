@@ -8,14 +8,15 @@ from datetime import datetime
 load_dotenv()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
-app = Flask(__name__)
+app = Flask(__name__, static_url_path="/assistant/static")
+app.config["APPLICATION_ROOT"] = "/assistant"
 
-@app.route("/")
+@app.route("/assistant/")
 def index():
     """صفحه اصلی که رابط کاربری را نمایش می‌دهد"""
     return render_template("index.html")
 
-@app.route("/analyze", methods=["POST"])
+@app.route("/assistant/analyze", methods=["POST"])
 def analyze():
     """آنالیز ورودی کاربر و ارائه پاسخ مناسب"""
     user_input = request.json.get("text")
