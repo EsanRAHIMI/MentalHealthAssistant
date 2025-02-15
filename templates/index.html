@@ -85,7 +85,7 @@
             recognition.lang = "en-US";
 
             recognition.onstart = function() {
-                startButton.innerHTML = `<span>🔴</span><span class="button-label">Listening</span>`;
+                startButton.innerHTML = `<span>🔴</span><span class="button-label"></span>`;
                 transcriptElement.innerText = "";
                 overlay.style.display = "flex";
                 overlayText.innerText = "I'm listening. How can I assist you?";
