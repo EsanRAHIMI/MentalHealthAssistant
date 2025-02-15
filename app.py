@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, render_template
+from flask import Flask, request, jsonify, render_template, send_from_directory
 import openai
 from dotenv import load_dotenv
 import os
@@ -66,6 +66,10 @@ def analyze():
     except Exception as e:
         print("Error occurred:", str(e))
         return jsonify({"error": str(e)}), 500
+
+@app.route(f"{APPLICATION_ROOT}/static/<path:filename>")
+def static_files(filename):
+    return send_from_directory(app.static_folder, filename)
 
 if __name__ == "__main__":
     print(f"Starting {APP_NAME} in {APP_ENV} mode on port {PORT}...")
